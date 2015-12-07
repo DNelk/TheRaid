@@ -39,7 +39,7 @@ var create = function(req, res){
 			return res.status(400).json({error: 'An error occurred'});
 		}
 		
-		res.json({redirect: '/character'});
+		res.json({redirect: '/app'});
 	});
 };
 

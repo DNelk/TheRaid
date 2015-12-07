@@ -4,6 +4,7 @@ var headgears = [];
 var skintones = [];
 var bodies = [];
 var charData;
+var socket;
 function preload() {
 	charData = JSON.parse(formatString($("input[name='myCharacter']").val()));
 	//BG
@@ -57,7 +58,16 @@ var skintone;
 var body;
 var title, stats;
 var comingsoon;
+var buttonTest;
+
 function create() {
+	socket = io.connect();
+	socket.on('connect', function() {
+		console.log('connecting');
+		socket.emit('join', {});
+		setupSocket();
+	});
+	
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
 	title = game.add.text(350,100,"Your Character:",style);
 	title.x = title.x - title.width/3;
@@ -69,7 +79,13 @@ function create() {
 	//Headgear
 	headgear = game.add.sprite(350,200,headgears[charData.headgear]);
 	comingsoon = game.add.text(160, 500,"Stay tuned! Full game coming soon!", style);
+	
+	buttonTest = game.add.button(350, 600, 'arrow', attack, this);
 }
+
+function attack(){
+	socket.emit('atk', {dmg: 1});
+};
 
 function sendAjax(action, data) {
 		console.log(data);
@@ -90,7 +106,15 @@ function sendAjax(action, data) {
                 handleError(messageObj.error);
             }
         });        
-    }
+}
+function setupSocket(){
+	socket.on('bossupadte', function(data){
+		handleMessage(data);
+	});
+}
+function handleMessage(data){
+	//Figure this out later
+}
 function handleError(message) {
      //Handle error messages
 	$("#errorMessage").text(message);
