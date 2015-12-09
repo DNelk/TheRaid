@@ -78,12 +78,12 @@ function create() {
 	skintone = game.add.sprite(350,200,skintones[charData.skintone]);
 	//Headgear
 	headgear = game.add.sprite(350,200,headgears[charData.headgear]);
-	comingsoon = game.add.text(160, 500,"Stay tuned! Full game coming soon!", style);
-	
+	comingsoon = game.add.text(160, 500,"Boss health: ", style);
 	buttonTest = game.add.button(350, 600, 'arrow', attack, this);
 }
 
 function attack(){
+	console.log("attacking");
 	socket.emit('atk', {dmg: 1});
 };
 
@@ -108,12 +108,13 @@ function sendAjax(action, data) {
         });        
 }
 function setupSocket(){
-	socket.on('bossupadte', function(data){
+	socket.on('bossupdate', function(data){
+		console.log("boss update");
 		handleMessage(data);
 	});
 }
 function handleMessage(data){
-	//Figure this out later
+	comingsoon.text = "Boss health: " + data.health;
 }
 function handleError(message) {
      //Handle error messages

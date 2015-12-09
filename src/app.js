@@ -10,11 +10,10 @@ var session = require('express-session');
 var RedisStore = require('connect-redis')(session);
 var url = require('url');
 var csrf = require('csurf');
-var fs = require('fs');
 var socketio = require('socket.io');
-var http = require('http');
+var sockets = require('./socket.js');
 
-var dbURL = process.env.MONGOLAB_URI || "mongodb://localhost/MVCProject";
+var dbURL = process.env.MONGOLAB_URI || "mongodb://localhost/TheRaid";
 
 var db = mongoose.connect(dbURL, function(err) {
 	if(err){
@@ -73,48 +72,15 @@ app.use(function (err, req, res, next){
 	return;
 });
 router(app);
-app.listen(port, function(err) {
+
+var server = app.listen(port, function(err) {
 	if (err) {
 		throw err;
 	}
 	console.log('Listening on port ' + port);
 });
 
-//Create http server
-var bosshealth = 100000;
-var server = http.Server(app);
 //pass in the http server into socketio and grab the websocket server as io
 var io = socketio(server);
 
-var onJoined = function(socket) {
-	socket.on("join", function(data) {
-		socket.join('room1');
-	});
-};
-
-var onMsg = function(socket) {
-	//Process damage
-	socket.on('atk', function(data) {
-		//process attack somehow and re emit the boss's health
-		var newData = {health: bosshealth};
-		io.sockets.in('room1').emit('bossupdate', newData);
-	});
-};
-
-var onDisconnect = function(socket) {
-	socket.on("disconnect", function(data) {
-		socket.leave('room1');
-	});
-};
-
-process.stdin.on('data', function(data) {
-	/*if(data.toString().trim() == "clear"){
-		io.sockets.in('room1').emit('clear', data);
-	}*/
-});
-
-io.sockets.on("connection", function(socket) {
-	onJoined(socket);
-	onMsg(socket);
-	onDisconnect(socket);
-});
+sockets.configureSockets(io);
