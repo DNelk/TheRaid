@@ -11,7 +11,7 @@ var RedisStore = require('connect-redis')(session);
 var url = require('url');
 var csrf = require('csurf');
 var socketio = require('socket.io');
-var sockets = require('./socket.js');
+var bossManager = require('./bossmanager');
 
 var dbURL = process.env.MONGOLAB_URI || "mongodb://localhost/TheRaid";
 
@@ -82,5 +82,4 @@ var server = app.listen(port, function(err) {
 
 //pass in the http server into socketio and grab the websocket server as io
 var io = socketio(server);
-
-sockets.configureSockets(io);
+bossManager.init(0,io);

@@ -53,13 +53,11 @@ function preload() {
 	game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 }
 
-var headgear;
-var skintone;
-var body;
 var title, stats;
-var comingsoon;
+var bosstext;
 var buttonTest;
-
+var randomChars;
+//Create character and set up socket
 function create() {
 	socket = io.connect();
 	socket.on('connect', function() {
@@ -67,18 +65,25 @@ function create() {
 		socket.emit('join', {});
 		setupSocket();
 	});
-	
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
 	title = game.add.text(350,100,"Your Character:",style);
 	title.x = title.x - title.width/3;
+	
 	stats = game.add.text(200, 400,"Strength: " + charData.strength + " Agility: " + charData.agility + " Health: " + charData.health, style);
+	var myCharacter = game.add.group();
+	myCharacter.x = myCharacter.y = 0;
 	//Body
-	body = game.add.sprite(350,200,bodies[charData.archtype]);
+	myCharacter.create(0,0,bodies[charData.archtype]);
 	//Skintone
-	skintone = game.add.sprite(350,200,skintones[charData.skintone]);
+	myCharacter.create(0,0,skintones[charData.skintone]);
 	//Headgear
-	headgear = game.add.sprite(350,200,headgears[charData.headgear]);
-	comingsoon = game.add.text(160, 500,"Boss health: ", style);
+	myCharacter.create(0,0,headgears[charData.headgear]);
+	randomChars = game.add.group();
+	createRandomCharacter();
+	createRandomCharacter();
+	//randomChars.children[0].destroy(true,false);
+	//console.log(randomCharacters);
+	bosstext = game.add.text(160, 500,"Boss health: ", style);
 	buttonTest = game.add.button(350, 600, 'arrow', attack, this);
 }
 
@@ -114,12 +119,30 @@ function setupSocket(){
 	});
 }
 function handleMessage(data){
-	comingsoon.text = "Boss health: " + data.health;
+	bosstext.text = "Boss health: " + data.currenthealth;
 }
 function handleError(message) {
      //Handle error messages
 	$("#errorMessage").text(message);
     $("#slideMessage").animate({width:'toggle'},350);
+}
+
+function createRandomCharacter(){
+	var randomChar = game.add.group();
+	randomChar.create(0,0,bodies[getRandomInt(0,bodies.length-1)]);
+	randomChar.create(0,0,skintones[getRandomInt(0,skintones.length-1)]);
+	randomChar.create(0,0,headgears[getRandomInt(0,headgears.length-1)]);
+	randomChar.scale.setTo(0.5, 0.5);
+	switch(getRandomInt(0,2)){
+		case 0:
+			randomChar.x = getRandomInt(25,200);
+			break;
+		case 1:
+			randomChar.x = getRandomInt(600,775);
+			break;
+	}
+	randomChar.y = getRandomInt(100,700);
+	randomChars.add(randomChar);
 }
 function formatString(str){
 	str = str.replace(/\r?\n|\r/g, "");
@@ -130,4 +153,8 @@ function formatString(str){
 	str = str.replace(/'/g, "\"");
 	str = str.replace(/"_id":/, "\"_id\":\"");
 	return str;
+}
+
+function getRandomInt (min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
 }
