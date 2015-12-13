@@ -106,7 +106,7 @@ CharacterSchema.statics.findById = function(id, callback){
 		_id: mongoose.Types.ObjectId(id)
 	};
 	
-	return CharacterModel.find(search).exec(callback);
+	return CharacterModel.findOne(search).exec(callback);
 };
 
 CharacterModel = mongoose.model('Character', CharacterSchema);

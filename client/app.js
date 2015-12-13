@@ -6,7 +6,9 @@ var skintones = [];
 var bodies = [];
 var charData;
 var socket;
+var bossGroup;
 function preload() {
+	this.stage.disableVisibiltyChange = true;
 	charData = JSON.parse(formatString($("input[name='myCharacter']").val()));
 	//BG
 	game.stage.backgroundColor = '#ffea9f';
@@ -16,7 +18,8 @@ function preload() {
 	game.load.image('barFrame', 'characterAssets/barframe.png');
 	game.load.image('barRed', 'characterAssets/barred.png');
 	game.load.image('barGreen', 'characterAssets/bargreen.png');
-
+	game.load.image('attack', 'characterAssets/attack.png');
+	game.load.image('dead', 'characterAssets/dead.png');
 	//Headgear
 	game.load.image('anime','characterAssets/headgear/anime.png');
 	game.load.image('melon','characterAssets/headgear/melon.png');
@@ -67,12 +70,18 @@ var bosstext;
 var boss;
 var randomChars;
 var bossBar, myBar;
-
+var atkSprite;
+var atkThreshold;
+var atkTotal = 0;
+var deadScreen;
+var date;
+var respawnText;
 //Create character and set up socket
 function create() {
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
 	
 	bosstext = game.add.text(300,150,"Boss Info",style);
+
 	
 	var bosshealth = game.add.text(50, 70,"Boss Health:",style);
 	var myhealth = game.add.text(275, 650, "Health:",style);
@@ -109,7 +118,18 @@ function create() {
 	myBar.x = 400;
 	myBar.y = 650;
 	myBar.scale.setTo(0.3,0.25);
-	updateCharacter(charData);
+	
+	atkSprite = game.add.sprite(game.world.centerX, game.world.centerY, 'attack');
+	atkSprite.anchor.setTo(0.5, 0.5);
+    atkSprite.alpha = 0;
+	
+	deadScreen = game.add.group();
+	deadScreen.create(0,0,'dead');
+	deadScreen.alpha = 0;
+	respawnText = game.add.text(550, 450, "", {font: "100px Roboto", fill: "#ff0000", align: "center"});
+	respawnText.anchor.setTo(0.5, 0.5);
+	respawnText.alpha = 0;
+	deadScreen.add(respawnText);
 	
 	game.input.onDown.add(changeTint, this);
 	game.input.onUp.add(changeTint, this);
@@ -122,13 +142,19 @@ function create() {
 }
 
 function changeTint(){
-	if(game.input.x > 250 && game.input.x < 550 && game.input.y >200 && game.input.y < 500){
+
+	if(game.input.x > 250 && game.input.x < 550 && game.input.y >200 && game.input.y < 500 && charData.currenthealth > 0){
 		if(boss.tint == 0xffffff) boss.tint = 0xff0000;
 		else if(boss.tint == 0xff0000) boss.tint = 0xffffff;
 	}
 }
-function attack(){
-	socket.emit('atk', {dmg: charData.strength});
+function attack(forceSend){
+	if(charData.currenthealth > 0)
+		atkTotal += charData.strength;
+	if(atkTotal > atkThreshold && charData.currentHealth != 0|| forceSend){
+		socket.emit('atk', {dmg: atkTotal});
+		atkTotal = 0;
+	}
 }
 
 function setupSocket(){
@@ -136,7 +162,7 @@ function setupSocket(){
 		updateBoss(data);
 	});
 	socket.on('bossatk', function(data){
-		//alert("Boss Attack!");
+		bossAttack(data.dmg);
 	});
 	socket.on('bossdeath', function(data){
 	});
@@ -148,22 +174,70 @@ function setupSocket(){
 	socket.on('leave', function(data){
 		randomChars.children[randomChars.length-1].destroy(true,false);
 	});
-	socket.emit('test', {_id: charData._id});
+	updateCharacter();
 }
 function updateBoss(data){
 	if(boss == undefined){
 		boss = game.add.button(275, 200, data.name, attack, this);
 		boss.width = 250;
 		boss.height = 250;
+		atkThreshold = 0.01 * data.maxhealth;
 	}
 	bossBar.children[1].scale.setTo(data.currenthealth/data.maxhealth, 1);
 	bosstext.text = "Boss #" + data.bossnum + " - " + data.name;
 	bosstext.x = 400 - (bosstext.width/2);
 }
-
-function updateCharacter(data){
-	myBar.children[1].scale.setTo(data.currenthealth/data.health, 1);
+function bossAttack(dmg){
+	if(charData.currenthealth > 0){
+		atkSprite.bringToTop();
+		var alphaTween = game.add.tween(atkSprite).to( { alpha: 1 }, 500, Phaser.Easing.Linear.None, true, 0, 1, true);
+		socket.emit('takedamage', {_id: charData._id});
+		//Do the same thing client side, just to keep it quick
+		charData.currenthealth -= 1;
+		if(charData.currenthealth <= 0){
+			charData.currenthealth = 0;
+			date = new Date();
+			charData.timeofdeath = date.getTime();
+		}
+		updateCharacter();
+	}
 }
+function updateCharacter(){
+	myBar.children[1].scale.setTo(charData.currenthealth/charData.health, 1);
+	if(charData.currenthealth <= 0){
+		playerDead();
+		attack(true);
+		if(boss.tint == 0xff0000) boss.tint = 0xffffff;
+	}
+}
+function playerDead(){
+	date = new Date();
+	var current = date.getTime();
+	var timeSinceDead = (current - charData.timeofdeath)/1000;
+	//console.log(timeSinceDead);
+	//console.log(charData.timeofdeath);
+	var respawnTime =  15/charData.agility;
+	if(timeSinceDead < respawnTime){
+		game.world.bringToTop(deadScreen);
+		deadScreen.alpha = 1;
+		//console.log(respawnText);
+		//respawnText.bringToTop();
+		respawnText.alpha = 1;
+		respawnText.text = Math.round(respawnTime - timeSinceDead);
+		setTimeout(playerDead, 1000);
+	}
+	else{
+		deadScreen.alpha = 0;
+		respawnText.alpha = 0;
+		respawn();
+	}
+}
+function respawn(){
+	socket.emit('respawn', {_id: charData._id});
+	charData.currenthealth = charData.health;
+	updateCharacter();
+}
+
 function createRandomCharacter(){
 	var randomChar = game.add.group();
 	randomChar.create(0,0,bodies[getRandomInt(0,bodies.length-1)]);
@@ -178,7 +252,7 @@ function createRandomCharacter(){
 			randomChar.x = getRandomInt(600,775);
 			break;
 	}
-	randomChar.y = getRandomInt(100,700);
+	randomChar.y = getRandomInt(100,600);
 	randomChars.add(randomChar);
 }
 

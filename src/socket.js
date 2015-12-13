@@ -30,10 +30,32 @@ var configureSockets = function(socketio) {
 			io.sockets.in('room1').emit("leave", {count: connectedCount-1});
 		});
 		
-		socket.on('test', function(data){
-			console.log(data);
+		socket.on('takedamage', function(data){
 			Character.CharacterModel.findById(data._id, function(err, docs){
-				//console.log(docs);
+				docs.currenthealth -= 1;
+				if(docs.currenthealth <= 0){
+					docs.currenthealth = 0;
+					var d = new Date();
+					docs.timeofdeath = d.getTime();
+				}
+				docs.save(function(err) {
+					if(err){
+						console.log(err);
+						return res.status(400).json({error: 'An error occurred'});
+					}
+				});
+			});
+		});
+		
+		socket.on('respawn', function(data){
+			Character.CharacterModel.findById(data._id, function(err, docs){
+				docs.currenthealth = docs.health;
+				docs.save(function(err) {
+					if(err){
+						console.log(err);
+						return res.status(400).json({error: 'An error occurred'});
+					}
+				});
 			});
 		});
 	});
@@ -41,6 +63,6 @@ var configureSockets = function(socketio) {
 
 function bossAttack(){
 	io.sockets.in('room1').emit('bossatk', {dmg: 1});
-	setTimeout(bossAttack, 30 * 1000);
+	setTimeout(bossAttack, 15 * 1000);
 }
 module.exports.configureSockets = configureSockets;
