@@ -136,3 +136,7 @@ nav {
 canvas{
 	margin: 0px auto;
 }
+
+#data{
+	display: none;
+}

@@ -28,6 +28,7 @@ var create = function(req, res){
 		strength: req.body.strength,
 		agility: req.body.agility,
 		health: req.body.health,
+		currenthealth: req.body.health,
 		owner: req.session.account._id
 	};
 	
