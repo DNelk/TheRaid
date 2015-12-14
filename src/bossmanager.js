@@ -4,7 +4,7 @@ var Boss = models.Boss;
 
 var model;
 var io; //Pass this into socket... kinda hacky
-var names = ["Bad Man", "Grandpa Princess"];
+var names = ["Bad Man", "Grandpa Princess","Crabbo","The Rock Monster","H Y P E R  D O G"];
 var init = function(overrideHealth, socketio){
 	io = socketio;
 	if(!overrideHealth || overrideHealth === 0){ //Not starting over, lets try and get the boss

@@ -14,8 +14,7 @@
     "Redis",
     "Login",
     "PBKDF2",
-	"socket.io",
-	"express"
+	"socket.io"
   ],
   "author": "Dylan Nelkin",
   "license": "Apache 2.0",

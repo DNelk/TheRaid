@@ -27,10 +27,18 @@ function preload() {
 	game.load.image('melon','characterAssets/headgear/melon.png');
 	game.load.image('normal','characterAssets/headgear/normal.png');
 	game.load.image('wizard','characterAssets/headgear/wizard.png');
+	game.load.image('shaved','characterAssets/headgear/shaved.png');
+	game.load.image('pomp','characterAssets/headgear/pomp.png');
+	game.load.image('twindrills','characterAssets/headgear/twindrills.png');
+	game.load.image('helmet','characterAssets/headgear/helmet.png');
 	headgears.push('anime');
 	headgears.push('melon');
 	headgears.push('normal');
 	headgears.push('wizard');
+	headgears.push('shaved');
+	headgears.push('pomp');
+	headgears.push('twindrills');
+	headgears.push('helmet');
 	
 	//Skintone
 	game.load.image('pale','characterAssets/skin/pale.png');
@@ -63,6 +71,10 @@ function preload() {
 	//Bosses
 	game.load.image('Bad Man', 'characterAssets/bosses/badman.png');
 	game.load.image('Grandpa Princess', 'characterAssets/bosses/princessgramps.png');
+	game.load.image('Crabbo', 'characterAssets/bosses/crabbo.png');
+	game.load.image('The Rock Monster', 'characterAssets/bosses/rockmonster.png');
+	game.load.image('H Y P E R  D O G', 'characterAssets/bosses/hyperdog.png');
+
 	
 	game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 }
