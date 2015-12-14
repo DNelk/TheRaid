@@ -7,6 +7,7 @@ var bodies = [];
 var charData;
 var socket;
 var bossGroup;
+//Preload assets
 function preload() {
 	this.stage.disableVisibiltyChange = true;
 	charData = JSON.parse(formatString($("input[name='myCharacter']").val()));
@@ -95,15 +96,18 @@ var bossDead = false;
 var bossDeadButton, bossDeadGroup;
 var levelUpText;
 var inGame = true;
-//Create character and set up socket
+
+//Create assets and set up socket
 function create() {
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
 	
-	bosstext = game.add.text(300,150,"Boss Info",style);
-
+	bosstext = game.add.text(300,150,"Boss Info",style); //Boss Info
 	
+	//Health labels
 	var bosshealth = game.add.text(50, 70,"Boss Health:",style);
 	var myhealth = game.add.text(275, 650, "Health:",style);
+	
+	//Create my character
 	var myCharacter = game.add.group();
 	myCharacter.x = myCharacter.y = 0;
 	//Body
@@ -117,8 +121,10 @@ function create() {
 	myCharacter.y = 475;
 	myCharacter.scale.setTo(0.8,0.8);
 	
+	//Group of npcs set later by server
 	randomChars = game.add.group();
 	
+	//Boss Health Bar
 	bossBar = game.add.group();
 	bossBar.x = bossBar.y = 0;
 	bossBar.create(0,0,'barRed');
@@ -128,7 +134,7 @@ function create() {
 	bossBar.y = 50;
 	bossBar.scale.setTo(0.8,0.5);
 	
-	
+	//My health bar
 	myBar = game.add.group();
 	myBar.x = myBar.y = 0;
 	myBar.create(0,0,'barRed');
@@ -138,10 +144,12 @@ function create() {
 	myBar.y = 650;
 	myBar.scale.setTo(0.3,0.25);
 	
+	//Graphic when boss attacks
 	atkSprite = game.add.sprite(game.world.centerX, game.world.centerY, 'attack');
 	atkSprite.anchor.setTo(0.5, 0.5);
     atkSprite.alpha = 0;
 	
+	//Screen When you die
 	deadScreen = game.add.group();
 	deadScreen.create(0,0,'dead');
 	deadScreen.alpha = 0;
@@ -150,6 +158,7 @@ function create() {
 	respawnText.alpha = 0;
 	deadScreen.add(respawnText);
 	
+	//Screen When boss dies
 	bossDeadGroup = game.add.group();
 	bossDeadButton = game.add.button(0,0,'bossDead',function(){
 		inGame = true;
@@ -164,6 +173,8 @@ function create() {
 	
 	game.input.onDown.add(changeTint, this);
 	game.input.onUp.add(changeTint, this);
+	
+	//Connect to socket
 	socket = io.connect();
 	socket.on('connect', function() {
 		console.log('connecting');
@@ -172,6 +183,7 @@ function create() {
 	});
 }
 
+//Tint boss on hit
 function changeTint(){
 
 	if(game.input.x > 250 && game.input.x < 550 && game.input.y >200 && game.input.y < 500 && inGame){
@@ -179,35 +191,40 @@ function changeTint(){
 		else if(boss.tint == 0xff0000) boss.tint = 0xffffff;
 	}
 }
+
+//When boss is attacked
 function attack(forceSend){
 	if(charData.currenthealth > 0)
 		atkTotal += charData.strength;
-	if(atkTotal > atkThreshold && inGame|| forceSend){
+	if(atkTotal > atkThreshold && inGame|| forceSend){ //Set a threshold so we don't break the server with too many messages
 		socket.emit('atk', {dmg: atkTotal});
 		atkTotal = 0;
 	}
 }
 
+//Set up connections
 function setupSocket(){
-	socket.on('bossupdate', function(data){
+	socket.on('bossupdate', function(data){ //General update
 		updateBoss(data);
 	});
-	socket.on('bossatk', function(data){
+	socket.on('bossatk', function(data){ //Boss attacks us
 		bossAttack(data.dmg);
 	});
-	socket.on('bossdeath', function(data){
+	socket.on('bossdeath', function(data){ //Boss Dies
 		bossDeathScreen(data);
 	});
-	socket.on('join', function(data){
+	socket.on('join', function(data){ //Someone joins, Create NPCs
 		for(var i = 0; i < data.count - randomChars.children.length; i++){
 			createRandomCharacter();
 		}
 	});
-	socket.on('leave', function(data){
+	socket.on('leave', function(data){ //Someone leaves, Destroy NPCs
 		randomChars.children[randomChars.length-1].destroy(true,false);
 	});
 	updateCharacter();
 }
+
+//Display stuff when boss dies
 function bossDeathScreen(data){
 	inGame = false;
 	bossDead = true;
@@ -231,6 +248,7 @@ function bossDeathScreen(data){
 	}
 }
 
+//Update the boss' health and other info if needed
 function updateBoss(data){
 	//console.log(data);
 	if(boss == undefined || bossDead){
@@ -246,6 +264,8 @@ function updateBoss(data){
 	bosstext.text = "Boss #" + data.bossnum + " - " + data.name;
 	bosstext.x = 400 - (bosstext.width/2);
 }
+
+//Boss attacks us, what happens
 function bossAttack(dmg){
 	if(charData.currenthealth > 0 && inGame){
 		atkSprite.bringToTop();
@@ -262,6 +282,8 @@ function bossAttack(dmg){
 		updateCharacter();
 	}
 }
+
+//Update character health or trigger death
 function updateCharacter(){
 	myBar.children[1].scale.setTo(charData.currenthealth/charData.health, 1);
 	if(charData.currenthealth <= 0){
@@ -270,6 +292,8 @@ function updateCharacter(){
 		if(boss && boss.tint == 0xff0000) boss.tint = 0xffffff;
 	}
 }
+
+//Display character death screen
 function playerDead(){
 	date = new Date();
 	var current = date.getTime();
@@ -288,6 +312,8 @@ function playerDead(){
 		respawn();
 	}
 }
+
+//Respawn from death
 function respawn(){
 	socket.emit('respawn', {_id: charData._id});
 	charData.currenthealth = charData.health;
@@ -295,6 +321,7 @@ function respawn(){
 	updateCharacter();
 }
 
+//Generate a random NPC
 function createRandomCharacter(){
 	var randomChar = game.add.group();
 	randomChar.create(0,0,bodies[getRandomInt(0,bodies.length-1)]);
@@ -314,7 +341,7 @@ function createRandomCharacter(){
 }
 
 //--------------------UTILS--------------------
-function formatString(str){
+function formatString(str){ //For formatting char data
 	str = str.replace(/\r?\n|\r/g, "");
 	str = str.replace(/: /g, " :");
 	str = str.replace(/  /g, "");
@@ -325,6 +352,7 @@ function formatString(str){
 	return str;
 }
 
+//Return random integer
 function getRandomInt (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -335,6 +363,7 @@ function handleError(message) {
     $("#slideMessage").animate({width:'toggle'},350);
 }
 
+//Send ajax
 function sendAjax(action, data) {
 		console.log(data);
         $.ajax({

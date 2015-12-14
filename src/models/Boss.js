@@ -39,6 +39,7 @@ var BossSchema = new mongoose.Schema({
 	}
 });
 
+//Return the most recent boss
 BossSchema.statics.getBoss = function(callback) {
     return BossModel.findOne().sort({createdData:-1}).exec(callback);
 };

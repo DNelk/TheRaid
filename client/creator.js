@@ -6,6 +6,7 @@ var bodies = [];
 var strength = 2;
 var agility = 1;
 var health = 3;
+//Preload assets
 function preload() {
 	//BG
 	game.stage.backgroundColor = '#ffea9f';
@@ -66,6 +67,7 @@ var skintone, skintoneindex = 0;
 var body, bodyindex = 0;
 var title, headlabel, skinlabel, classlabel, stats;
 var create;
+//Create assets
 function create() {
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
 	title = game.add.text(350,100,"Create your character",style);
@@ -92,6 +94,7 @@ function create() {
 	headgearbackward.scale.setTo(-1,1);
 }
 
+//Update stats text
 function updateStats(){
 	switch(bodies[bodyindex]){
 		case "warrior":
@@ -116,6 +119,7 @@ function updateStats(){
 	stats.text = "Strength: " + strength + " Agility: " + agility + " Health: " + health;
 }
 
+//Send ajax
 function sendAjax(action, data) {
 		console.log(data);
         $.ajax({

@@ -2,20 +2,21 @@ var models = require('./models');
 var sockets = require('./socket.js');
 var Boss = models.Boss;
 
-var model;
+var model; //Our boss singleton
 var io; //Pass this into socket... kinda hacky
-var names = ["Bad Man", "Grandpa Princess","Crabbo","The Rock Monster","H Y P E R  D O G"];
+var names = ["Bad Man", "Grandpa Princess","Crabbo","The Rock Monster","H Y P E R  D O G"]; //Boss names
 var init = function(overrideHealth, socketio){
 	io = socketio;
 	if(!overrideHealth || overrideHealth === 0){ //Not starting over, lets try and get the boss
 		Boss.BossModel.getBoss(setModel);
 	}
-	else{
+	else{ //New boss!
 		createBoss(overrideHealth);
 	}
 
 };
 
+//Save boss model
 var save = function(){
 	model.save(function(err) {
 		if(err){
@@ -25,6 +26,7 @@ var save = function(){
 	});
 };
 
+//Use previous model
 function setModel(err, docs){
 	model = docs;
 	if(!model){
@@ -34,7 +36,7 @@ function setModel(err, docs){
 	update();
 	return model;
 }
-
+//Create new boss model
 function createBoss(overrideHealth){
 	var startingHealth = overrideHealth || 1000;
 	var bossData = {
@@ -59,15 +61,18 @@ var getModel = function(){
 	return model;
 };
 
+//Save every 5 seconds
 function update(){
 	save();
 	setTimeout(update, 5000);
 }
 
+//Boss dies
 var killBoss = function(){
 	Boss.BossModel.getBoss(setNewBoss);
 };
 
+//Make new boss
 function setNewBoss(err, docs){
 	var prevHealth = docs.maxhealth;
 	var prevNum = docs.bossnum;
@@ -83,7 +88,7 @@ function setNewBoss(err, docs){
 		}
 	});
 	model = docs;
-	sockets.emitNewBoss();
+	sockets.emitNewBoss(); //Update the sockets
 }
 module.exports.init = init;
 module.exports.getModel = getModel;
