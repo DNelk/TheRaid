@@ -20,6 +20,8 @@ function preload() {
 	game.load.image('barGreen', 'characterAssets/bargreen.png');
 	game.load.image('attack', 'characterAssets/attack.png');
 	game.load.image('dead', 'characterAssets/dead.png');
+	game.load.image('bossDead', 'characterAssets/bossdead.png');
+
 	//Headgear
 	game.load.image('anime','characterAssets/headgear/anime.png');
 	game.load.image('melon','characterAssets/headgear/melon.png');
@@ -60,6 +62,7 @@ function preload() {
 	
 	//Bosses
 	game.load.image('Bad Man', 'characterAssets/bosses/badman.png');
+	game.load.image('Grandpa Princess', 'characterAssets/bosses/princessgramps.png');
 	
 	game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 }
@@ -76,6 +79,10 @@ var atkTotal = 0;
 var deadScreen;
 var date;
 var respawnText;
+var bossDead = false;
+var bossDeadButton, bossDeadGroup;
+var levelUpText;
+var inGame = true;
 //Create character and set up socket
 function create() {
 	var style = {font: "32px Roboto", fill: "#8f8359", align: "center"};
@@ -131,6 +138,18 @@ function create() {
 	respawnText.alpha = 0;
 	deadScreen.add(respawnText);
 	
+	bossDeadGroup = game.add.group();
+	bossDeadButton = game.add.button(0,0,'bossDead',function(){
+		inGame = true;
+		bossDeadGroup.visible = false;
+		}, true);
+	bossDeadGroup.add(bossDeadButton);
+	levelUpText = game.add.text(400, 450, "Level UP! Your stats have increased!", {font: "40px Roboto", fill: "#00ff00", align: "center"});
+	levelUpText.anchor.setTo(0.5, 0.5);
+	bossDeadGroup.add(levelUpText);
+	bossDeadGroup.visible = false;
+	
+	
 	game.input.onDown.add(changeTint, this);
 	game.input.onUp.add(changeTint, this);
 	socket = io.connect();
@@ -143,7 +162,7 @@ function create() {
 
 function changeTint(){
 
-	if(game.input.x > 250 && game.input.x < 550 && game.input.y >200 && game.input.y < 500 && charData.currenthealth > 0){
+	if(game.input.x > 250 && game.input.x < 550 && game.input.y >200 && game.input.y < 500 && inGame){
 		if(boss.tint == 0xffffff) boss.tint = 0xff0000;
 		else if(boss.tint == 0xff0000) boss.tint = 0xffffff;
 	}
@@ -151,7 +170,7 @@ function changeTint(){
 function attack(forceSend){
 	if(charData.currenthealth > 0)
 		atkTotal += charData.strength;
-	if(atkTotal > atkThreshold && charData.currentHealth != 0|| forceSend){
+	if(atkTotal > atkThreshold && inGame|| forceSend){
 		socket.emit('atk', {dmg: atkTotal});
 		atkTotal = 0;
 	}
@@ -165,6 +184,7 @@ function setupSocket(){
 		bossAttack(data.dmg);
 	});
 	socket.on('bossdeath', function(data){
+		bossDeathScreen(data);
 	});
 	socket.on('join', function(data){
 		for(var i = 0; i < data.count - randomChars.children.length; i++){
@@ -176,25 +196,53 @@ function setupSocket(){
 	});
 	updateCharacter();
 }
+function bossDeathScreen(data){
+	inGame = false;
+	bossDead = true;
+	bossDeadGroup.visible = true;
+	game.world.bringToTop(bossDeadGroup);
+	
+	//Calculate EXP gained by defeating boss (the server will also do this)
+	var exp = data.bossnum * 500;
+	socket.emit('expup', {_id: charData._id, exp: exp});
+	charData.exp += exp;
+	if(charData.exp >= charData.level * charData.level * 500){
+		charData.level++;
+		charData.attack *= 1.5;
+		charData.agility *= 1.5;
+		charData.health *= 1.5;
+		charData.currenthealth = charData.health;
+		levelUpText.visible = true;
+	}
+	else{
+		levelUpText.visible = false;
+	}
+}
+
 function updateBoss(data){
-	if(boss == undefined){
+	//console.log(data);
+	if(boss == undefined || bossDead){
+		if(bossDead) boss.destroy();
 		boss = game.add.button(275, 200, data.name, attack, this);
 		boss.width = 250;
 		boss.height = 250;
 		atkThreshold = 0.01 * data.maxhealth;
+		bossDead = false;
+		game.world.bringToTop(bossDeadGroup);
 	}
 	bossBar.children[1].scale.setTo(data.currenthealth/data.maxhealth, 1);
 	bosstext.text = "Boss #" + data.bossnum + " - " + data.name;
 	bosstext.x = 400 - (bosstext.width/2);
 }
 function bossAttack(dmg){
-	if(charData.currenthealth > 0){
+	if(charData.currenthealth > 0 && inGame){
 		atkSprite.bringToTop();
 		var alphaTween = game.add.tween(atkSprite).to( { alpha: 1 }, 500, Phaser.Easing.Linear.None, true, 0, 1, true);
 		socket.emit('takedamage', {_id: charData._id});
 		//Do the same thing client side, just to keep it quick
 		charData.currenthealth -= 1;
 		if(charData.currenthealth <= 0){
+			inGame = false;
 			charData.currenthealth = 0;
 			date = new Date();
 			charData.timeofdeath = date.getTime();
@@ -207,21 +255,17 @@ function updateCharacter(){
 	if(charData.currenthealth <= 0){
 		playerDead();
 		attack(true);
-		if(boss.tint == 0xff0000) boss.tint = 0xffffff;
+		if(boss && boss.tint == 0xff0000) boss.tint = 0xffffff;
 	}
 }
 function playerDead(){
 	date = new Date();
 	var current = date.getTime();
 	var timeSinceDead = (current - charData.timeofdeath)/1000;
-	//console.log(timeSinceDead);
-	//console.log(charData.timeofdeath);
 	var respawnTime =  15/charData.agility;
 	if(timeSinceDead < respawnTime){
 		game.world.bringToTop(deadScreen);
 		deadScreen.alpha = 1;
-		//console.log(respawnText);
-		//respawnText.bringToTop();
 		respawnText.alpha = 1;
 		respawnText.text = Math.round(respawnTime - timeSinceDead);
 		setTimeout(playerDead, 1000);
@@ -235,6 +279,7 @@ function playerDead(){
 function respawn(){
 	socket.emit('respawn', {_id: charData._id});
 	charData.currenthealth = charData.health;
+	inGame = true;
 	updateCharacter();
 }
 

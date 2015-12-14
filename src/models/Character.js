@@ -66,6 +66,11 @@ var CharacterSchema = new mongoose.Schema({
 		default: 0
 	},
 	
+	level: {
+		type: Number,
+		default: 1
+	},
+	
 	owner: {
 		type: mongoose.Schema.ObjectId,
 		required: true,
@@ -89,7 +94,8 @@ CharacterSchema.methods.toAPI = function() {
 		health: this.health,
 		currenthealth: this.currenthealth,
 		timeofdeath: this.timeofdeath,
-		exp: this.exp
+		exp: this.exp,
+		level: this.level
 	};
 };
 
@@ -98,7 +104,7 @@ CharacterSchema.statics.findByOwner = function(ownerId, callback) {
 		owner: mongoose.Types.ObjectId(ownerId)
 	};
 	
-	return CharacterModel.find(search).select("name headgear skintone archtype strength agility health exp timeofdeath currenthealth").exec(callback);
+	return CharacterModel.find(search).select("name headgear skintone archtype strength agility health exp timeofdeath currenthealth level").exec(callback);
 };
 
 CharacterSchema.statics.findById = function(id, callback){
