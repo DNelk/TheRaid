@@ -97,6 +97,6 @@ function bossAttack(){
 var emitNewBoss = function(){
 	updatingBoss = false;
 	io.sockets.in('room1').emit("bossupdate", bossManager.getModel());
-}
+};
 module.exports.configureSockets = configureSockets;
 module.exports.emitNewBoss = emitNewBoss;

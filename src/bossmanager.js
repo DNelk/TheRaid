@@ -7,7 +7,7 @@ var io; //Pass this into socket... kinda hacky
 var names = ["Bad Man", "Grandpa Princess"];
 var init = function(overrideHealth, socketio){
 	io = socketio;
-	if(!overrideHealth || overrideHealth == 0){ //Not starting over, lets try and get the boss
+	if(!overrideHealth || overrideHealth === 0){ //Not starting over, lets try and get the boss
 		Boss.BossModel.getBoss(setModel);
 	}
 	else{
@@ -57,7 +57,7 @@ function createBoss(overrideHealth){
 
 var getModel = function(){
 	return model;
-}
+};
 
 function update(){
 	save();
@@ -66,7 +66,7 @@ function update(){
 
 var killBoss = function(){
 	Boss.BossModel.getBoss(setNewBoss);
-}
+};
 
 function setNewBoss(err, docs){
 	var prevHealth = docs.maxhealth;
