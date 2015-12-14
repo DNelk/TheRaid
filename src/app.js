@@ -81,5 +81,6 @@ var server = app.listen(port, function(err) {
 });
 
 //pass in the http server into socketio and grab the websocket server as io
-var io = socketio(server);
+/*var io = socketio(server);
 bossManager.init(0,io);
+*/
